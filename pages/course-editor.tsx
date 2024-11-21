@@ -1,5 +1,8 @@
 "use client";
 
+import SkillEditor from "@/pages/skill-editor";
+import CoursePreview from "@/pages/course-preview";
+import ModuleView from "@/pages/module-view-complete"
 import React, { useState } from 'react';
 import { 
   Card,
@@ -68,6 +71,7 @@ const CourseEditor = () => {
               <TabsTrigger value="grunddaten">Grunddaten</TabsTrigger>
               <TabsTrigger value="skills">Skillansicht</TabsTrigger>
               <TabsTrigger value="module">Modulansicht</TabsTrigger>
+              <TabsTrigger value="vorschau">Vorschau</TabsTrigger>
             </TabsList>
 
             <TabsContent value="grunddaten">
@@ -207,13 +211,19 @@ const CourseEditor = () => {
 
             <TabsContent value="skills">
               <div className="p-4 text-center text-gray-500">
-                Skillansicht Inhalt
+                <SkillEditor/>
               </div>
             </TabsContent>
 
             <TabsContent value="module">
               <div className="p-4 text-center text-gray-500">
-                Modulansicht Inhalt
+                <ModuleView/>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="vorschau">
+              <div className="p-4 text-center text-gray-500">
+                <CoursePreview/>
               </div>
             </TabsContent>
           </Tabs>
