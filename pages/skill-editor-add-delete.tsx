@@ -8,35 +8,48 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { X, ChevronRight, ChevronDown } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Trash2, Plus } from 'lucide-react';
 
-const availableSkills = ["Skill A", "Skill B", "Skill C"];
-
-const initialSkillHierarchy = {
-  name: "Wissenschaftliches Arbeiten",
-  children: [
-    {
-      name: "Lesen",
+const repositories = {
+    "wissenschaftliches-arbeiten": {
+      name: "Wissenschaftliches Arbeiten",
       children: [
         {
-          name: "Leseprozess",
+          name: "Lesen",
           children: [
-            { name: "Zielbestimmung", children: [] },
-            { name: "Durchsicht", children: [] },
-            { name: "Nachbereitung", children: [] }
+            {
+              name: "Leseprozess", 
+              children: [
+                { name: "Zielbestimmung", children: [] },
+                { name: "Durchsicht", children: [] },
+                { name: "Nachbereitung", children: [] }
+              ]
+            },
+            {
+              name: "Literatursuche",
+              children: [
+                { name: "Wissenschaftliche Suchmasch.", children: [] },
+                { name: "Stichwortsuche", children: [] }
+              ]
+            }
           ]
-        },
+        }
+      ]
+    },
+    "programmierung": {
+      name: "Programmierung",
+      children: [
         {
-          name: "Literatursuche",
+          name: "Python",
           children: [
-            { name: "Wissenschaftliche Suchmasch.", children: [] },
-            { name: "Stichwortsuche", children: [] }
+            { name: "Grundlagen", children: [] },
+            { name: "Objektorientierung", children: [] }
           ]
         }
       ]
     }
-  ]
-};
+   };
 
 // Helper function to find skill info
 const findSkillInfo = (skillName, node, parentName = null) => {
@@ -64,9 +77,11 @@ const SkillEditor = () => {
   });
 
   const [expandedNodes, setExpandedNodes] = useState(new Set(['Wissenschaftliches Arbeiten', 'Lesen', 'Leseprozess', 'Literatursuche']));
-
-  const [skillHierarchy, setSkillHierarchy] = useState(initialSkillHierarchy);
+  const [selectedRepository, setSelectedRepository] = useState("wissenschaftliches-arbeiten");
+  const [skillHierarchy, setSkillHierarchy] = useState(repositories[selectedRepository]);
   const [isAddSkillDialogOpen, setIsAddSkillDialogOpen] = useState(false);
+  const [targetParentSkill, setTargetParentSkill] = useState(null);
+  const [availableSkills, setAvailableSkills] = useState(["Skill A", "Skill B", "Skill C"]);
 
   const toggleNode = (e, nodeName) => {
     e.stopPropagation();
@@ -81,20 +96,90 @@ const SkillEditor = () => {
     });
   };
 
+  const getAllChildSkillNames = (node) => {
+    let names = [];
+    node.children.forEach(child => {
+      names.push(child.name);
+      names = [...names, ...getAllChildSkillNames(child)];
+    });
+    return names;
+   };
+
   const handleAddSkill = (skillName) => {
-    setSkillHierarchy(prev => ({
-      ...prev,
-      children: [...prev.children, { name: skillName, children: [] }]
-    }));
+    setSkillHierarchy(prev => {
+      const addSkillToNode = (node) => {
+        if (node.name === targetParentSkill) {
+          setAvailableSkills(prev => prev.filter(s => s !== skillName));
+          return {
+            ...node,
+            children: [...node.children, { name: skillName, children: [] }]
+          };
+        }
+        return {
+          ...node,
+          children: node.children.map(child => addSkillToNode(child))
+        };
+      };
+      return addSkillToNode(prev);
+    });
     setIsAddSkillDialogOpen(false);
+    setTargetParentSkill(null);
   };
   
   const handleRemoveSkill = (skillName) => {
-    setSkillHierarchy(prev => ({
-      ...prev,
-      children: prev.children.filter(child => child.name !== skillName)
-    }));
+    // Zuerst den Skill und seine Kinder finden
+    const findSkillAndChildren = (node) => {
+      if (node.name === skillName) {
+        return [node.name, ...getAllChildSkillNames(node)];
+      }
+      for (const child of node.children) {
+        const found = findSkillAndChildren(child);
+        if (found) return found;
+      }
+      return null;
+    };
+  
+    // Skills zum available Array hinzufügen
+    const skillsToAdd = findSkillAndChildren(skillHierarchy);
+    if (skillsToAdd) {
+      setAvailableSkills(prev => [...prev, ...skillsToAdd]);
+    }
+  
+    // Skill aus Hierarchie entfernen
+    setSkillHierarchy(prev => {
+      const removeFromNode = (node) => ({
+        ...node,
+        children: node.children
+          .filter(child => child.name !== skillName)
+          .map(child => removeFromNode(child))
+      });
+      return removeFromNode(prev);
+    });
   };
+  
+   const handleRemoveChildSkill = (childName) => {
+    setSkillHierarchy(prev => {
+      const removeFromNode = (node) => {
+        if (node.name === selectedSkill.name) {
+          setAvailableSkills(prev => [...prev, childName]);
+          return {
+            ...node,
+            children: node.children.filter(child => child.name !== childName)
+          };
+        }
+        return {
+          ...node,
+          children: node.children.map(child => removeFromNode(child))
+        };
+      };
+      return removeFromNode(prev);
+    });
+    
+    setSelectedSkill(prev => ({
+      ...prev,
+      children: prev.children.filter(child => child !== childName)
+    }));
+   };
 
   const handleSkillClick = (skillName) => {
     const skillInfo = findSkillInfo(skillName, skillHierarchy);
@@ -108,13 +193,19 @@ const SkillEditor = () => {
     const hasChildren = skill.children && skill.children.length > 0;
     const isExpanded = expandedNodes.has(skill.name);
     const isSelected = selectedSkill.name === skill.name;
-    const isRemovable = depth === 1 && !['Lesen'].includes(skill.name);
-
+    const isRemovable = !['Lesen', 'Wissenschaftliches Arbeiten'].includes(skill.name);
+  
+    const handleAddChild = (e) => {
+      e.stopPropagation();
+      setIsAddSkillDialogOpen(true);
+      setTargetParentSkill(skill.name);
+    };
+  
     return (
       <div className="ml-4">
         {depth > 0 && (
           <div 
-            className={`flex items-center gap-2 py-1 group cursor-pointer ${isSelected ? 'text-blue-600 font-medium' : ''}`}
+            className="flex items-center gap-2 py-1 group cursor-pointer hover:bg-gray-50 rounded-md px-2"
             onClick={() => handleSkillClick(skill.name)}
           >
             {hasChildren ? (
@@ -131,22 +222,32 @@ const SkillEditor = () => {
             ) : (
               <div className="w-4" />
             )}
-            <span className="text-sm hover:text-blue-600 transition-colors">
+            <span className={`text-sm hover:text-blue-600 transition-colors flex-grow text-left ${isSelected ? 'text-blue-600 font-medium' : ''}`}>
               {skill.name}
             </span>
-            {isRemovable && (
+            <div className="opacity-0 group-hover:opacity-100 flex gap-1">
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleRemoveSkill(skill.name);
-                }}
-                className="p-0 h-6 w-6 ml-2"
+                onClick={handleAddChild}
+                className="p-0 h-6 w-6"
               >
-                <Trash2 className="h-4 w-4 text-red-500" />
+                <Plus className="h-4 w-4 text-blue-500" />
               </Button>
-            )}
+              {isRemovable && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRemoveSkill(skill.name);
+                  }}
+                  className="p-0 h-6 w-6"
+                >
+                  <Trash2 className="h-4 w-4 text-red-500" />
+                </Button>
+              )}
+            </div>
           </div>
         )}
         {hasChildren && isExpanded && (
@@ -168,11 +269,24 @@ const SkillEditor = () => {
           <Card>
             <CardContent className="p-6">
               <div className="space-y-4">
-                <div>
-                  <h3 className="font-medium mb-2">Repository auswählen</h3>
-                  <div className="bg-gray-200 p-2 rounded text-sm">
-                    Wissenschaftliches Arbeiten
-                  </div>
+              <div>
+                <h3 className="font-medium mb-2">Repository auswählen</h3>
+                <Select 
+                value={selectedRepository}
+                onValueChange={(value) => {
+                    setSelectedRepository(value);
+                    setSkillHierarchy(repositories[value]);
+                    setExpandedNodes(new Set([repositories[value].name]));
+                }}
+                >
+                <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Repository wählen" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="wissenschaftliches-arbeiten">Wissenschaftliches Arbeiten</SelectItem>
+                    <SelectItem value="programmierung">Programmierung</SelectItem>
+                </SelectContent>
+                </Select>
                 </div>
 
                 <div>
@@ -196,7 +310,7 @@ const SkillEditor = () => {
                         {selectedSkill.children.map((child, index) => (
                           <div key={index} className="flex items-center gap-2 bg-gray-100 px-2 py-1 rounded">
                             {child}
-                            <Button variant="ghost" size="sm" className="ml-auto p-0 h-auto">
+                            <Button variant="ghost" size="sm" className="ml-auto p-0 h-auto" onClick={() => handleRemoveChildSkill(child)}>
                               <X className="h-4 w-4" />
                             </Button>
                           </div>
@@ -231,14 +345,6 @@ const SkillEditor = () => {
           <Card>
             <CardContent className="p-6">
               <h3 className="font-medium mb-4">Wissenschaftliches Arbeiten</h3>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsAddSkillDialogOpen(true)}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Skill hinzufügen
-              </Button>
               <div className="border rounded p-4">
                 <SkillHierarchy skill={skillHierarchy} />
               </div>
@@ -253,18 +359,18 @@ const SkillEditor = () => {
             <DialogTitle>Skill hinzufügen</DialogTitle>
           </DialogHeader>
           <div className="space-y-2">
-            {availableSkills
-              .filter(skill => !skillHierarchy.children.some(child => child.name === skill))
-              .map((skill, index) => (
+          {availableSkills
+            .filter(skill => !getAllChildSkillNames(skillHierarchy).includes(skill))
+            .map((skill, index) => (
                 <Button
-                  key={index}
-                  variant="outline"
-                  className="w-full text-left justify-start"
-                  onClick={() => handleAddSkill(skill)}
+                key={index}
+                variant="outline"
+                className="w-full text-left justify-start"
+                onClick={() => handleAddSkill(skill)}
                 >
-                  {skill}
+                {skill}
                 </Button>
-              ))}
+            ))}
           </div>
         </DialogContent>
       </Dialog>

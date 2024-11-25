@@ -1,6 +1,6 @@
 "use client";
 
-import SkillEditor from "@/pages/skill-editor";
+import SkillEditor from "@/pages/skill-editor-add-delete";
 import CoursePreview from "@/pages/course-preview";
 import ModuleView from "@/pages/module-view-complete"
 import React, { useState } from 'react';
@@ -174,7 +174,7 @@ const CourseEditor = () => {
                       <SelectValue placeholder="-- Kein Repository ausgewählt --" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="repo1">Repository 1</SelectItem>
+                      <SelectItem value="repo1">Wissenschaftliches Arbeiten</SelectItem>
                       <SelectItem value="repo2">Repository 2</SelectItem>
                     </SelectContent>
                   </Select>

@@ -55,10 +55,10 @@ const ModuleView = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isModuleDialogOpen, setIsModuleDialogOpen] = useState(false);
   const [moduleSearchTerm, setModuleSearchTerm] = useState('');
-  const [selectedModules, setSelectedModules] = useState([
-    { id: 1, name: "Modul 1" }
-  ]);
+  const [selectedModules, setSelectedModules] = useState([]);
   const [author, setAuthor] = useState(['Michael Ganske']);
+  const [selectedSkills, setSelectedSkills] = useState([]);
+  const [isSkillDialogOpen, setIsSkillDialogOpen] = useState(false);
 
   // Filter modules based on search term
   const filteredModules = availableModules.filter(module => 
@@ -99,10 +99,43 @@ const ModuleView = () => {
           ))}
           <Button variant="outline" size="sm" className="w-full">
             <Plus className="h-4 w-4 mr-2" />
-            Hinzufügen
+            Autor hinzufügen
           </Button>
         </div>
       </div>
+
+      <div>
+        <label className="block text-sm font-medium mb-2">Skills</label>
+        <div className="flex flex-wrap gap-2 mb-6">
+          {selectedSkills.map((skill) => (
+            <div
+              key={skill.name}
+              className="bg-gray-100 px-3 py-2 rounded flex-1 relative group"
+            >
+              <Button
+                variant="ghost"
+                size="sm"
+                className="absolute top-1 right-1 p-0 h-auto opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={() => setSelectedSkills(prev =>
+                  prev.filter(s => s.name !== skill.name)
+                )}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+              <div>{skill.name}</div>
+            </div>
+          ))}
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full"
+            onClick={() => setIsSkillDialogOpen(true)}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Skill hinzufügen
+          </Button>
+        </div>
+        </div>
 
       <div>
         <label className="block text-sm font-medium mb-1">Lizenz</label>
@@ -159,7 +192,7 @@ const ModuleView = () => {
           Inhalt, der zur Wissensvermittlung genutzt werden soll. Wenn mehrere Elemente angelegt werden, 
           können diese in ihrer Reihenfolge verschoben werden um die gewünschte Struktur zu erreichen.
         </p>
-        <div className="flex gap-2 mb-4">
+        <div className="flex flex-wrap gap-2 mb-4">
           <Button variant="outline" className="gap-2">
             <Video className="h-4 w-4" />
             Video hinzufügen
@@ -277,28 +310,59 @@ const ModuleView = () => {
     </Dialog>
   );
 
+  const SkillSelectionDialog = () => (
+    <Dialog open={isSkillDialogOpen} onOpenChange={setIsSkillDialogOpen}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Skill auswählen</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-2">
+          {mockSkillsData.hierarchy
+            .filter(skill => !selectedSkills.some(s => s.name === skill.name))
+            .map((skill) => (
+              <Button
+                key={skill.name}
+                variant="outline"
+                className="w-full text-left justify-start"
+                onClick={() => {
+                  setSelectedSkills(prev => [...prev, skill]);
+                  setIsSkillDialogOpen(false);
+                }}
+              >
+                {skill.name}
+              </Button>
+            ))}
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+
+  const ContentView = ({ viewMode }) => {
+    if (viewMode === 'modules') {
+      return (
+        <div className="space-y-2">
+          {availableModules.map((module) => (
+            <div key={module.id} className="p-3 hover:bg-gray-100 rounded cursor-pointer">
+              <div className="font-medium text-left">{module.name}</div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+   
+    return (
+      <div className="space-y-1">
+        {mockSkillsData.hierarchy.map((item, index) => (
+          <div key={index} className="p-2 hover:bg-gray-100 rounded cursor-pointer">
+            <div className="font-medium text-left">{item.name}</div>
+          </div>
+        ))}
+      </div>
+    );
+   };
+
   return (
     <div className="w-full min-h-screen bg-gray-50 p-6">
-      {/* Navigation Tabs */}
-      <div className="flex gap-2 mb-6 bg-gray-200 p-2 rounded">
-        <Button variant="ghost" className="gap-2">
-          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-white">1</span>
-          Grunddaten
-        </Button>
-        <Button variant="ghost" className="gap-2">
-          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-white">2</span>
-          Skillansicht
-        </Button>
-        <Button variant="ghost" className="gap-2">
-          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-white">3</span>
-          Modulansicht
-        </Button>
-        <Button variant="ghost" className="gap-2">
-          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-white">4</span>
-          Vorschau
-        </Button>
-      </div>
-
       <div className="flex gap-6">
         {/* Left Side - Skills/Modules List */}
         <div className="w-1/3">
@@ -331,25 +395,8 @@ const ModuleView = () => {
                   </Button>
                 </div>
 
-                <div className="relative">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <Input
-                    placeholder="Suche"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-
                 <div className="space-y-1">
-                  {mockSkillsData.hierarchy.map((item, index) => (
-                    <div 
-                      key={index}
-                      className="p-2 hover:bg-gray-100 rounded cursor-pointer"
-                    >
-                      {item.name}
-                    </div>
-                  ))}
+                  <ContentView viewMode={viewMode} />
                 </div>
               </div>
             </CardContent>
@@ -386,6 +433,9 @@ const ModuleView = () => {
 
       {/* Module Selection Dialog */}
       <ModuleSelectionDialog />
+
+      {/* Skill Selection Dialog */}
+      <SkillSelectionDialog />
     </div>
   );
 };
